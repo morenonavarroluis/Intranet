@@ -1,11 +1,16 @@
 <?php
 include('../cone.php');
+include('../permisos.php');
 session_start();
 
 if (!isset($_SESSION['IDDATOS'])) {
     header("Location: ../index.php");
     exit;
 }
+
+
+
+exigirPermiso('noticias.crear', $conn, 'index.php');
 
 $ID       = $_SESSION['IDDATOS'];
 $USER     = $_SESSION['USER'];

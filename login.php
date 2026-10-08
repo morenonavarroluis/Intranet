@@ -1,122 +1,92 @@
 <?php
 require "cone.php";
+session_start();
 
- session_start();
-
-//  Verificacion para el inicio de sesion.
-if ($_POST) {
-    $USER = $_POST['USER'];
-    $password = $_POST['PASSWORD'];
-// Otro código de tu sistema aquí...
-    $sql = "SELECT IDDATOS, PASSWORD, USER, EMAIL, IDROLS, telefono, ASSIGNED_AREA,  NAME, SURNAME, CEDULA FROM user_datos WHERE USER='$USER' ";
-    $resultado = mysqli_query($conn,$sql);
-
-    $num = $resultado->num_rows;
-
-    // if (strlen($_POST['PASSWORD']) <= 8){
-    //     echo "La contraseña tiene que ser al menos de 8 caracteres";
-    
-    //      }else{
-    if ($num > 0) {
-        $row = $resultado->fetch_assoc();
-        $password_bd = $row['PASSWORD'];
-        $pass_c = sha1($password);
- 
-
-        if ($password_bd == $pass_c) {
-            $_SESSION['IDDATOS'] = $row['IDDATOS'];
-            $_SESSION['USER'] = $row['USER'];
-            $_SESSION['IDROLS'] = $row['IDROLS'];
-			$_SESSION['NAME'] = $row['NAME'];
-            $_SESSION['SURNAME'] = $row['SURNAME'];
-            $_SESSION['CEDULA'] = $row['CEDULA'];
-           
-            $_SESSION['PASSWORD'] = $row['PASSWORD'];
-            $_SESSION['telefono'] = $row['telefono']; 
-            $_SESSION['EMAIL'] = $row['EMAIL'];
-            $_SESSION['ASSIGNED_AREA'] = $row['ASSIGNED_AREA'];
-        //    Comprobación de inicion de sesión y roles
-            if (isset($_SESSION['IDROLS'])) {
-                switch ($_SESSION['IDROLS']) {
-                   case 1:
-                        header("Location: admin/index.php");
-                        break;
-                    case 2:
-                        header("Location: usuario/index.php");
-                        break;
-                    case 3:
-                        header("Location: tecnico/soporte.php");
-                        break;
-                    case 4:
-                        header("Location: rrhh/usuarios.php");
-                        break;
-                   
-                    default:
-                           echo  "
-        <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
-        <script language='JavaScript'>
-        document.addEventListener('DOMContentLoaded', function() {
-            Swal.fire({
-                icon: 'error',
-                title: 'Rol no existente',
-                showCancelButton: false,
-                confirmButtonColor: '#3085d6',
-                confirmButtonText: 'OK'
-              }).then(() => {
-                location.assign('index.php');
-              });
-    });
-        </script>";
-    
-                        break;
-                }
-
-            }
-        } else {
-            // Envia un mensaje de alerta por si el password no coincide
-             echo "
-                <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
-                <script language='JavaScript'>
-                document.addEventListener('DOMContentLoaded', function() {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'La contraseña no coincide',
-                        showCancelButton: false,
-                        confirmButtonColor: '#3085d6',
-                        confirmButtonText: 'OK',
-                        timer: 1500
-                      }).then(() => {
-
-                        location.assign('index.php');
-
-                      });
-            });
-                </script>";
-        }
-    } else {
-        // Envia un mensaje de alerta por si el usuario no coincide no coincide
-        echo "
-                <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
-                <script language='JavaScript'>
-                document.addEventListener('DOMContentLoaded', function() {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'El usuario no coincide',
-                        showCancelButton: false,
-                        confirmButtonColor: '#3085d6',
-                        confirmButtonText: 'OK',
-                        timer: 1500
-                      }).then(() => {
-
-                        location.assign('index.php');
-
-                      });
-            });
-                </script>";
-    }
+// Si ya está logueado, redirigir al admin
+if (isset($_SESSION['IDDATOS'])) {
+    header("Location: admin/index.php");
+    exit;
 }
 
-// }
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $USER     = trim($_POST['USER'] ?? '');
+    $password = $_POST['PASSWORD'] ?? '';
 
+    if (empty($USER) || empty($password)) {
+        mostrarAlerta('error', 'Completa todos los campos');
+        exit;
+    }
 
+    // Consulta preparada
+    $stmt = $conn->prepare("SELECT IDDATOS, PASSWORD, USER, EMAIL, IDROLS, telefono, 
+                                   ASSIGNED_AREA, NAME, SURNAME, CEDULA 
+                            FROM user_datos WHERE USER = ? LIMIT 1");
+    $stmt->bind_param("s", $USER);
+    $stmt->execute();
+    $resultado = $stmt->get_result();
+
+    if ($resultado->num_rows === 0) {
+        mostrarAlerta('error', 'El usuario no existe');
+        exit;
+    }
+
+    $row = $resultado->fetch_assoc();
+    $password_bd = $row['PASSWORD'];
+
+    // ✅ Acepta SHA1 y BCRYPT
+    $password_valida = false;
+
+    if (strlen($password_bd) === 40) {
+        if (hash_equals($password_bd, sha1($password))) {
+            $password_valida = true;
+            // Migrar a BCRYPT
+            $nuevoHash = password_hash($password, PASSWORD_BCRYPT);
+            $upd = $conn->prepare("UPDATE user_datos SET PASSWORD = ? WHERE IDDATOS = ?");
+            $upd->bind_param("si", $nuevoHash, $row['IDDATOS']);
+            $upd->execute();
+        }
+    } else {
+        if (password_verify($password, $password_bd)) {
+            $password_valida = true;
+        }
+    }
+
+    if (!$password_valida) {
+        mostrarAlerta('error', 'La contraseña no coincide');
+        exit;
+    }
+
+    // Crear sesión
+    $_SESSION['IDDATOS']       = $row['IDDATOS'];
+    $_SESSION['USER']          = $row['USER'];
+    $_SESSION['IDROLS']        = $row['IDROLS'];
+    $_SESSION['NAME']          = $row['NAME'];
+    $_SESSION['SURNAME']       = $row['SURNAME'];
+    $_SESSION['CEDULA']        = $row['CEDULA'];
+    $_SESSION['PASSWORD']      = $row['PASSWORD'];
+    $_SESSION['telefono']      = $row['telefono'];
+    $_SESSION['EMAIL']         = $row['EMAIL'];
+    $_SESSION['ASSIGNED_AREA'] = $row['ASSIGNED_AREA'];
+
+    session_regenerate_id(true);
+
+    // ✅ TODOS van al mismo lugar: admin/index.php
+    header("Location: admin/index.php");
+    exit;
+}
+
+function mostrarAlerta($icono, $titulo) {
+    echo "
+    <script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        Swal.fire({
+            icon: '$icono',
+            title: '$titulo',
+            timer: 1500,
+            showConfirmButton: false
+        }).then(() => { location.assign('index.php'); });
+    });
+    </script>";
+}
 ?>

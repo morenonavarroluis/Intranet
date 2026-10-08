@@ -1,5 +1,6 @@
 <?php
 include('../cone.php');
+include('../permisos.php');
 session_start();
 
 if (!isset($_SESSION['IDDATOS']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -7,11 +8,9 @@ if (!isset($_SESSION['IDDATOS']) || $_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$ROL_SESION = $_SESSION['IDROLS'];
-if ($ROL_SESION != 1 && $ROL_SESION != 4) {
-    header("Location: index.php");
-    exit;
-}
+// ✅ ANTES: if ($ROL_SESION != 1 && $ROL_SESION != 4)
+// ✅ AHORA:
+exigirPermiso('usuarios.password', $conn, 'index.php');
 
 $id  = intval($_POST['id'] ?? 0);
 $p1  = $_POST['password']  ?? '';
