@@ -160,6 +160,30 @@ $nombreRol = $roles[$ROL] ?? 'Usuario';
       .header .search-form { display: none; }
     }
   </style>
+  <script>
+  // Verificar mensajes no leídos cada 10 segundos
+  function verificarChat() {
+    fetch('chat_api.php?accion=no_leidos')
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          const total = Object.values(data.no_leidos).reduce((a,b) => a+b, 0);
+          const badge = document.getElementById('badgeChatGlobal');
+          if (badge) {
+            if (total > 0) {
+              badge.textContent = total;
+              badge.style.display = 'inline-block';
+            } else {
+              badge.style.display = 'none';
+            }
+          }
+        }
+      })
+      .catch(() => {});
+  }
+  setInterval(verificarChat, 10000);
+  verificarChat();
+</script>
 </head>
 <body>
 
@@ -205,6 +229,16 @@ $nombreRol = $roles[$ROL] ?? 'Usuario';
       <li class="nav-item">
         <a class="nav-link active" href="index.php">
           <i class="bi bi-grid-1x2-fill"></i><span>Dashboard</span>
+        </a>
+      </li>
+    <?php endif; ?>
+
+    <?php if (tienePermiso('chat.ver', $conn)): ?>
+      <li class="nav-item">
+        <a class="nav-link" href="chat.php">
+          <i class="bi bi-chat-dots"></i>
+          <span>Chat Interno</span>
+          <span class="badge bg-danger ms-auto" id="badgeChatGlobal" style="display:none;">0</span>
         </a>
       </li>
     <?php endif; ?>
