@@ -170,7 +170,7 @@ $nombreRol = $roles[$ROL] ?? 'Usuario';
       <i class="bi bi-list"></i>
     </button>
     <a href="index.php" class="logo">
-      <img src="images/Canaima.png" alt="Canaima">
+      <img src="images/logo.jpeg" alt="Canaima">
       <span class="d-none d-md-inline">Industria Canaima</span>
     </a>
   </div>

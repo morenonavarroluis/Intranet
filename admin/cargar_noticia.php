@@ -29,7 +29,7 @@ if ($ROL != 1 && $ROL != 4) {
 // Foto usuario
 $consulta = mysqli_query($conn, "SELECT CEDULA, foto FROM user_datos WHERE CEDULA = '$CEDULA'");
 $valores  = mysqli_fetch_array($consulta);
-$foto     = $valores['foto'] ?? 'images/Canaima.png';
+$foto     = $valores['foto'] ?? 'images/logo.jpeg';
 
 // Listar noticias existentes
 $sqlNoticias = "SELECT i.cod_imagen, i.imagen, i.nombre, i.comentario, i.fecha_publicacion,
