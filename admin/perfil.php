@@ -1,648 +1,819 @@
 <?php
-
- 
 include('../cone.php');
-
 session_start();
+
 if (!isset($_SESSION['IDDATOS'])) {
-  header("Location: index.php");
+    header("Location: ../index.php");
+    exit;
 }
-$ID = $_SESSION['IDDATOS']; 
-$USER = $_SESSION['USER'];
-$NAME = $_SESSION['NAME'];
-$primeraN = substr($NAME, 0, 1);
-$APE = $_SESSION['SURNAME'];
-$primeraA = substr($APE, 0, 8);
-$ROL = $_SESSION['IDROLS'];
-$CEDULA = $_SESSION['CEDULA'];
-$area  = $_SESSION['ASSIGNED_AREA'];
- 
- 
 
+$ID       = $_SESSION['IDDATOS'];
+$USER     = $_SESSION['USER'];
+$NAME     = $_SESSION['NAME'];
+$APE      = $_SESSION['SURNAME'];
+$CEDULA   = $_SESSION['CEDULA'];
+$area     = $_SESSION['ASSIGNED_AREA'];
+$ROL      = $_SESSION['IDROLS'];
+
+// Traer datos actualizados del usuario
+$sqlUser = "SELECT * FROM user_datos WHERE IDDATOS = '$ID'";
+$resUser = mysqli_query($conn, $sqlUser);
+$U = mysqli_fetch_assoc($resUser);
+
+$foto = $U['foto'] ?? 'images/Canaima.png';
+
+// Estadísticas
+$stats = [
+    'reportes'   => mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM report WHERE ID_NAME = '$ID'"))['total'],
+    'resueltos'  => mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM report WHERE ID_NAME = '$ID' AND STATUS = 4"))['total'],
+    'pendientes' => mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM report WHERE ID_NAME = '$ID' AND STATUS = 3"))['total'],
+];
+
+// Nombre del rol
+$roles = [1 => 'Administrador', 2 => 'Usuario', 3 => 'Técnico', 4 => 'RRHH'];
+$nombreRol = $roles[$U['IDROLS']] ?? 'Usuario';
 ?>
-
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="es">
 <head>
   <meta charset="utf-8">
-  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Perfil | Industria Canaima</title>
+  <link rel="shortcut icon" href="images/Canaima.png" type="image/x-icon">
 
-  <title>Industria Canaima</title>
-  <meta content="" name="description">
-  <meta content="" name="keywords">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- Favicons -->
-  <link href="assets/img/favicon.png" rel="icon">
-  <link href="assets/img/apple-touch-icon.png" rel="apple-touch-icon">
+  <style>
+    :root {
+      --primary: #667eea;
+      --primary-dark: #5568d3;
+      --secondary: #764ba2;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --info: #3b82f6;
+      --dark: #1e293b;
+      --gray: #64748b;
+      --light: #f1f5f9;
+      --border: #e2e8f0;
+    }
 
-  <!-- Google Fonts -->
-  <link href="https://fonts.gstatic.com" rel="preconnect">
-  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,300i,400,400i,600,600i,700,700i|Nunito:300,300i,400,400i,600,600i,700,700i|Poppins:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+    * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
 
-  <!-- Vendor CSS Files -->
-  <link href="assets/vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
-  <link href="assets/vendor/bootstrap-icons/bootstrap-icons.css" rel="stylesheet">
-  <link href="assets/vendor/boxicons/css/boxicons.min.css" rel="stylesheet">
-  <link href="assets/vendor/quill/quill.snow.css" rel="stylesheet">
-  <link href="assets/vendor/quill/quill.bubble.css" rel="stylesheet">
-  <link href="assets/vendor/remixicon/remixicon.css" rel="stylesheet">
-  <link href="assets/vendor/simple-datatables/style.css" rel="stylesheet">
+    body {
+      background: #f8fafc;
+      color: var(--dark);
+      margin: 0;
+    }
 
-  <!-- Template Main CSS File -->
-  <link href="assets/css/style.css" rel="stylesheet">
+    /* ============ HEADER ============ */
+    .header {
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      padding: 0 1.5rem;
+      height: 70px;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
 
-  <!-- =======================================================
-  * Template Name: NiceAdmin
-  * Template URL: https://bootstrapmade.com/nice-admin-bootstrap-admin-html-template/
-  * Updated: Apr 20 2024 with Bootstrap v5.3.3
-  * Author: BootstrapMade.com
-  * License: https://bootstrapmade.com/license/
-  ======================================================== -->
+    .header .logo {
+      display: flex; align-items: center; gap: 0.75rem;
+      text-decoration: none; color: var(--dark);
+      font-weight: 700; font-size: 1.1rem;
+    }
+    .header .logo img { height: 40px; }
+
+    .header .search-form {
+      flex: 1; max-width: 400px;
+      margin: 0 2rem; position: relative;
+    }
+    .header .search-form input {
+      width: 100%;
+      padding: 0.6rem 1rem 0.6rem 2.75rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--light);
+      font-size: 0.9rem;
+    }
+    .header .search-form input:focus {
+      outline: none; border-color: var(--primary);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    .header .search-form i {
+      position: absolute; left: 1rem; top: 50%;
+      transform: translateY(-50%); color: var(--gray);
+    }
+
+    .header .profile-btn {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.4rem 0.75rem; border-radius: 10px;
+      text-decoration: none; color: var(--dark);
+      transition: background 0.2s;
+    }
+    .header .profile-btn:hover { background: var(--light); }
+    .header .profile-btn img {
+      width: 38px; height: 38px; border-radius: 50%;
+      object-fit: cover; border: 2px solid var(--primary);
+    }
+    .header .profile-btn .info { display: flex; flex-direction: column; line-height: 1.2; }
+    .header .profile-btn .info strong { font-size: 0.85rem; font-weight: 600; }
+    .header .profile-btn .info small { font-size: 0.75rem; color: var(--gray); }
+
+    /* ============ SIDEBAR ============ */
+    .sidebar {
+      position: fixed; top: 70px; left: 0; bottom: 0;
+      width: 260px; background: #fff;
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 1.25rem 0.75rem;
+      transition: transform 0.3s; z-index: 900;
+    }
+    .sidebar::-webkit-scrollbar { width: 6px; }
+    .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .sidebar-nav { list-style: none; padding: 0; margin: 0; }
+    .sidebar-nav .nav-heading {
+      font-size: 0.7rem; text-transform: uppercase;
+      letter-spacing: 0.05em; color: var(--gray);
+      padding: 0.75rem 0.75rem 0.5rem; font-weight: 600;
+    }
+    .sidebar-nav .nav-item { margin-bottom: 0.15rem; }
+    .sidebar-nav .nav-link {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.65rem 0.85rem;
+      color: var(--gray); text-decoration: none;
+      border-radius: 8px; font-size: 0.875rem;
+      font-weight: 500; transition: all 0.2s;
+    }
+    .sidebar-nav .nav-link:hover { background: var(--light); color: var(--primary); }
+    .sidebar-nav .nav-link.active {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    .sidebar-nav .nav-link i { font-size: 1.1rem; width: 20px; text-align: center; }
+
+    /* ============ MAIN ============ */
+    .main {
+      margin-left: 260px; margin-top: 70px;
+      padding: 1.75rem; min-height: calc(100vh - 70px);
+    }
+
+    /* ============ PAGE HEADER ============ */
+    .page-header { margin-bottom: 1.5rem; }
+    .page-header h1 {
+      font-size: 1.75rem; font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    .page-header .breadcrumb {
+      background: transparent; padding: 0; margin: 0;
+      font-size: 0.875rem;
+    }
+    .page-header .breadcrumb a { color: var(--primary); text-decoration: none; }
+    .page-header .breadcrumb-item.active { color: var(--gray); }
+
+    /* ============ PROFILE HEADER ============ */
+    .profile-header {
+      background: #fff;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      margin-bottom: 1.5rem;
+    }
+
+    .profile-banner {
+      height: 160px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      position: relative;
+    }
+    .profile-banner::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+
+    .profile-info-block {
+      padding: 0 2rem 1.75rem;
+      position: relative;
+    }
+
+    .profile-avatar-wrapper {
+      margin-top: -60px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .profile-avatar {
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      border: 5px solid #fff;
+      object-fit: cover;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      background: #fff;
+    }
+
+    .profile-details {
+      flex: 1;
+      min-width: 200px;
+      padding-top: 1rem;
+    }
+    .profile-details h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 0.35rem;
+    }
+    .profile-details .role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+      color: var(--primary);
+      padding: 0.35rem 0.85rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1px solid rgba(102, 126, 234, 0.2);
+    }
+    .profile-details .area {
+      color: var(--gray);
+      font-size: 0.875rem;
+      margin-top: 0.35rem;
+    }
+
+    /* ============ STATS MINI ============ */
+    .mini-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      padding: 1.25rem 2rem;
+      border-top: 1px solid var(--border);
+      background: #fafbfc;
+    }
+    .mini-stat {
+      text-align: center;
+      padding: 0.75rem;
+      border-radius: 10px;
+      background: #fff;
+      border: 1px solid var(--border);
+    }
+    .mini-stat h4 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin: 0 0 0.15rem;
+      color: var(--primary);
+    }
+    .mini-stat span {
+      font-size: 0.75rem;
+      color: var(--gray);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+    }
+
+    /* ============ TABS ============ */
+    .profile-tabs {
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+
+    .nav-tabs-custom {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      padding: 0 1rem;
+      background: #fafbfc;
+      overflow-x: auto;
+    }
+    .nav-tabs-custom .nav-link {
+      border: none;
+      background: transparent;
+      color: var(--gray);
+      font-weight: 600;
+      font-size: 0.875rem;
+      padding: 1rem 1.25rem;
+      position: relative;
+      white-space: nowrap;
+      transition: color 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .nav-tabs-custom .nav-link:hover { color: var(--primary); }
+    .nav-tabs-custom .nav-link.active {
+      color: var(--primary);
+      background: transparent;
+    }
+    .nav-tabs-custom .nav-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 1.25rem;
+      right: 1.25rem;
+      height: 2px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 2px 2px 0 0;
+    }
+
+    .tab-content-custom { padding: 2rem; }
+
+    /* ============ FORM ============ */
+    .form-label {
+      font-weight: 600; font-size: 0.85rem;
+      color: var(--dark); margin-bottom: 0.5rem;
+    }
+    .form-control, .form-select {
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 0.7rem 1rem;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .form-control:focus, .form-select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+    }
+    .form-control:disabled {
+      background: var(--light);
+      cursor: not-allowed;
+    }
+
+    /* ============ INFO ROWS ============ */
+    .info-row {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 1rem;
+      padding: 0.85rem 0;
+      border-bottom: 1px solid var(--light);
+      align-items: center;
+    }
+    .info-row:last-child { border-bottom: none; }
+    .info-row .label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--gray);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .info-row .value {
+      font-size: 0.9rem;
+      color: var(--dark);
+      font-weight: 500;
+    }
+
+    /* ============ PASSWORD STRENGTH ============ */
+    .password-strength {
+      display: flex;
+      gap: 0.25rem;
+      margin-top: 0.5rem;
+    }
+    .password-strength .bar {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      transition: background 0.3s;
+    }
+    .password-strength .bar.active.weak   { background: var(--danger); }
+    .password-strength .bar.active.medium { background: var(--warning); }
+    .password-strength .bar.active.strong { background: var(--success); }
+
+    .password-hint {
+      font-size: 0.75rem;
+      color: var(--gray);
+      margin-top: 0.35rem;
+    }
+
+    /* ============ BUTTONS ============ */
+    .btn-gradient {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      color: #fff;
+      font-weight: 600;
+      padding: 0.75rem 1.75rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      transition: all 0.3s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .btn-gradient:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+      color: #fff;
+    }
+
+    /* ============ AVATAR UPLOAD ============ */
+    .avatar-upload {
+      position: relative;
+      display: inline-block;
+    }
+    .avatar-upload img {
+      width: 100px; height: 100px; border-radius: 50%;
+      object-fit: cover; border: 4px solid #fff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .avatar-upload .btn-camera {
+      position: absolute;
+      bottom: 0; right: 0;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff;
+      border: 3px solid #fff;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 0.8rem;
+      transition: transform 0.2s;
+    }
+    .avatar-upload .btn-camera:hover { transform: scale(1.1); }
+
+    /* ============ FOOTER ============ */
+    .footer {
+      margin-left: 260px;
+      padding: 1.5rem;
+      text-align: center;
+      color: var(--gray);
+      font-size: 0.85rem;
+      border-top: 1px solid var(--border);
+      background: #fff;
+    }
+
+    /* ============ RESPONSIVE ============ */
+    .toggle-sidebar {
+      display: none;
+      background: transparent; border: none;
+      font-size: 1.5rem; color: var(--dark); cursor: pointer;
+    }
+
+    @media (max-width: 991px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.show { transform: translateX(0); box-shadow: 0 0 30px rgba(0,0,0,0.15); }
+      .main, .footer { margin-left: 0; }
+      .toggle-sidebar { display: block; }
+      .header .search-form { display: none; }
+      .info-row { grid-template-columns: 1fr; gap: 0.25rem; }
+    }
+  </style>
 </head>
-
 <body>
 
-    <!-- ======= Header ======= -->
-    <header id="header" class="header fixed-top d-flex align-items-center">
+<!-- ============ HEADER ============ -->
+<header class="header">
+  <div class="d-flex align-items-center gap-3">
+    <button class="toggle-sidebar" onclick="document.querySelector('.sidebar').classList.toggle('show')">
+      <i class="bi bi-list"></i>
+    </button>
+    <a href="index.php" class="logo">
+      <img src="images/Canaima.png" alt="Canaima">
+      <span class="d-none d-md-inline">Industria Canaima</span>
+    </a>
+  </div>
 
-<div class="d-flex align-items-center justify-content-between">
-  <a href="index.html" class="logo d-flex align-items-center">
-    <img src="images/Canaima.png" alt="">
-    <span class="d-none d-lg-block">Industria Canaima</span>
-  </a>
-  <i class="bi bi-list toggle-sidebar-btn"></i>
-</div><!-- End Logo -->
-
-<div class="search-bar">
-  <form class="search-form d-flex align-items-center" method="POST" action="#">
-    <input type="text" name="query" placeholder="Search" title="Enter search keyword">
-    <button type="submit" title="Search"><i class="bi bi-search"></i></button>
+  <form class="search-form" method="POST" action="#">
+    <i class="bi bi-search"></i>
+    <input type="text" name="query" placeholder="Buscar en el sistema...">
   </form>
-</div><!-- End Search Bar -->
 
-<nav class="header-nav ms-auto">
-  <ul class="d-flex align-items-center">
-
-   
-
-    <li class="nav-item dropdown pe-3">
-
-      <a class="nav-link nav-profile d-flex align-items-center pe-0" href="#" data-bs-toggle="dropdown">
-      <?php 
-                                 
-                                 if (isset($_SESSION['IDDATOS'])) {
-              
-                                 }else{
-                                     ?>
-                                     <script type="text/javascript">
-                                         window.location = "./";
-                                     </script>
-                                     <?php 
-                                 }
-                              
-                                 $consulta = mysqli_query($conn, "SELECT CEDULA , foto FROM user_datos WHERE CEDULA = '$CEDULA';");
-                                 $valores = mysqli_fetch_array($consulta);
-                                 $foto = $valores['foto'];
-                                  ?>
-        <img src="<?php echo $foto; ?>" alt="" width="35" height="35" class="rounded-circle">
-        <span class="d-none d-md-block dropdown-toggle ps-2"><?php echo  $primeraN .".   ". $primeraA  ?></span>
-      </a><!-- End Profile Iamge Icon -->
-
-      <ul class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile">
-        <li class="dropdown-header">
-        
-          <h6><?php echo  $NAME ?></h6>
-          <span><?php echo  $area ?></span>
-        </li>
-        <li>
-          <hr class="dropdown-divider">
-        </li>
-
-        <li>
-          <a class="dropdown-item d-flex align-items-center" href="users-profile.html">
-            <i class="bi bi-person"></i>
-            <span>Mi Perfil</span>
-          </a>
-        </li>
-        <li>
-          <hr class="dropdown-divider">
-        </li>
-
-          <hr class="dropdown-divider">
-        </li>
-
-        <li>
-          <a class="dropdown-item d-flex align-items-center" href="pages-faq.html">
-            <i class="bi bi-question-circle"></i>
-            <span>ayuda</span>
-          </a>
-        </li>
-        <li>
-          <hr class="dropdown-divider">
-        </li>
-
-        <li>
-          <a class="dropdown-item d-flex align-items-center" href="#">
-            <i class="bi bi-box-arrow-right"></i>
-            <span>Cerrar</span>
-          </a>
-        </li>
-
-      </ul><!-- End Profile Dropdown Items -->
-    </li><!-- End Profile Nav -->
-
-  </ul>
-</nav><!-- End Icons Navigation -->
-
-</header><!-- End Header -->
-
-
-  
-  <!-- ======= Sidebar ======= -->
-  <aside id="sidebar" class="sidebar">
-
-    <ul class="sidebar-nav" id="sidebar-nav">
-
-      <li class="nav-item">
-        <a class="nav-link " href="index.php">
-          <i class="bi bi-grid"></i>
-          <span>inicio</span>
-        </a>
-      </li><!-- End Dashboard Nav -->
-
-      <li class="nav-item">
-        <a class="nav-link collapsed" data-bs-target="#components-nav" data-bs-toggle="collapse" href="#">
-          <i class="bi bi-menu-button-wide"></i><span>solicitud</span><i class="bi bi-chevron-down ms-auto"></i>
-        </a>
-        <ul id="components-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
-          <li>
-            <a href="soporte_tecnico.php">
-              <i class="bi bi-circle"></i><span>Soporte Tecnico</span>
-            </a>
-          </li>
-          <?php
-          $sql1 = "SELECT IDDATOS FROM user_datos WHERE IDDATOS = '$ID' ";
-             $resulta = mysqli_query($conn,$sql1);
-          
-             $mostre = mysqli_fetch_assoc($resulta) 
-             ?>
-          <li>
-       <a  href="Constancia_de_trabajo.php?edi=<?php echo $mostre['IDDATOS'];?>"</a> 
-              <i class="bi bi-circle"></i><span>Contancia de trabajo</span>
-            </a>
-          </li>
-          <li>
-            <a href="recibo.php">
-              <i class="bi bi-circle"></i><span>Recibo de pago</span>
-            </a>
-          </li>
-         
-        </ul>
-      </li><!-- End Components Nav -->
-
-      <li class="nav-item">
-        <a class="nav-link collapsed" data-bs-target="#forms-nav" data-bs-toggle="collapse" href="#">
-          <i class="bi bi-journal-text"></i><span>Descargas</span><i class="bi bi-chevron-down ms-auto"></i>
-        </a>
-        <ul id="forms-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
-          <li>
-            <a  href="./pdf/vacaciones.xls" >
-              <i class="bi bi-circle"></i><span>planilla de vacaciones</span>
-            </a>
-          </li>
-          <li>
-            <a href="./pdf/permiso.docx">
-              <i class="bi bi-circle"></i><span>planilla de permisos</span>
-            </a>
-          </li>
-          <!-- <li>
-            <a href="forms-editors.html">
-              <i class="bi bi-circle"></i><span>Form Editors</span>
-            </a>
-          </li>
-          <li>
-            <a href="forms-validation.html">
-              <i class="bi bi-circle"></i><span>Form Validation</span>
-            </a>
-          </li> -->
-        </ul>
-      </li><!-- End Forms Nav -->
-
-      <li class="nav-item">
-        <a class="nav-link collapsed" data-bs-target="#tables-nav" data-bs-toggle="collapse" href="#">
-          <i class="bi bi-layout-text-window-reverse"></i><span>Biblioteca Digital</span><i class="bi bi-chevron-down ms-auto"></i>
-        </a>
-        <ul id="tables-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
-          <li>
-            <a href="./pdf/103_Manual_Canaimit.pdf">
-              <i class="bi bi-circle"></i><span> Manual de canaima</span>
-            </a>
-          </li>
-          <li>
-            <a href="./pdf/para_el_usuario.docx">
-              <i class="bi bi-circle"></i><span>Cuidado de la canaima</span>
-            </a>
-          </li>
-          <li>
-            <a href="./pdf/guia linux.pdf">
-              <i class="bi bi-circle"></i><span>Guia de linux </span>
-            </a>
-          </li>
-          <li>
-            <a href="./pdf/Linux Desde Cero.pdf">
-              <i class="bi bi-circle"></i><span>Linux desde cero</span>
-            </a>
-          </li>
-          <li>
-            <a href="./pdf/fundamentos de linux.pdf">
-              <i class="bi bi-circle"></i><span>fundamentos de linux</span>
-            </a>
-          </li>
-          <li>
-            <a href="./pdf/administrador de linux.pdf">
-              <i class="bi bi-circle"></i><span>Administrador de linux</span>
-            </a>
-          </li>
-        </ul>
-      </li><!-- End Tables Nav -->
-
-      <li class="nav-item">
-        <a class="nav-link collapsed" data-bs-target="#charts-nav" data-bs-toggle="collapse" href="#">
-          <i class="bi bi-bar-chart"></i><span>web</span><i class="bi bi-chevron-down ms-auto"></i>
-        </a>
-        <ul id="charts-nav" class="nav-content collapse " data-bs-parent="#sidebar-nav">
-          <li>
-            <a href="https://bdvenlinea.banvenez.com">
-              <i class="bi bi-circle"></i><span>Banco de Venezuela</span>
-            </a>
-          </li>
-          <li>
-            <a href="https://bicentenarioenlinea.bicentenariobu.com.ve/?p=1">
-              <i class="bi bi-circle"></i><span>Banco Bicentenario</span>
-            </a>
-          </li>
-          <li>
-            <a href="https://btenlinea.bt.com.ve/lg">
-              <i class="bi bi-circle"></i><span>Banco del Tesoro</span>
-            </a>
-          </li>
-          <li>
-            <a href="https://www.eluniversal.com">
-              <i class="bi bi-circle"></i><span>Periodico Universal</span>
-            </a>
-          </li>
-          <li>
-            <a href="https://dolartoday.com/calculadora/">
-              <i class="bi bi-circle"></i><span>calcular dolar</span>
-            </a>
-          </li>
-          <li>
-            <a href="https://www.banesconline.com/mantis/Website/Login.aspx">
-              <i class="bi bi-circle"></i><span>Banco Banesco</span>
-            </a>
-          </li>
-          <li>
-            <a href="https://www.provincial.com/personas.html">
-              <i class="bi bi-circle"></i><span>Banco Provincial</span>
-            </a>
-          </li>
-          <li>
-            <a href="https://persona.patria.org.ve/login/clave/">
-              <i class="bi bi-circle"></i><span>Patria</span>
-            </a>
-          </li>
-        </ul>
-      </li><!-- End Charts Nav -->
-      
-   
-      <li class="nav-heading">Pages</li>
-
-      <li class="nav-item">
-        <a class="nav-link collapsed" href="perfil.php">
-          <i class="bi bi-person"></i>
-          <span>Perfil</span>
-        </a>
-      </li><!-- End Profile Page Nav -->
-
-      <li class="nav-item">
-        <a class="nav-link collapsed" href="caso_soporte.php">
-          <i class="bi bi-question-circle"></i>
-          <span>Casos de Soporte</span>
-        </a>
-      </li><!-- End F.A.Q Page Nav -->
-
-      <li class="nav-item">
-        <a class="nav-link collapsed" href="usuarios.php">
-          <i class="bi bi-envelope"></i>
-          <span>Gestion de usuarios</span>
-        </a>
-      </li><!-- End Contact Page Nav -->
-
-      <li class="nav-item">
-        <a class="nav-link collapsed" href="cargar_noticia.php">
-          <i class="bi bi-envelope"></i>
-          <span>Cargar Noticia</span>
-        </a>
-      </li><!-- End Contact Page Nav -->
-
-    
-      <li class="nav-item">
-        <a class="nav-link collapsed" href="../logout.php">
-          <i class="bi bi-box-arrow-in-right"></i>
-          <span>Cerrar</span>
-        </a>
-      </li><!-- End Login Page Nav -->
-
-     
+  <div class="dropdown">
+    <a href="#" class="profile-btn" data-bs-toggle="dropdown">
+      <img src="<?php echo htmlspecialchars($foto); ?>" alt="Avatar">
+      <div class="info d-none d-md-block">
+        <strong><?php echo htmlspecialchars($NAME); ?></strong>
+        <small><?php echo htmlspecialchars($area); ?></small>
+      </div>
+      <i class="bi bi-chevron-down d-none d-md-inline" style="font-size: 0.75rem;"></i>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-end shadow" style="border-radius: 10px; border: none; padding: 0.5rem;">
+      <li class="px-3 py-2 border-bottom">
+        <strong class="d-block"><?php echo htmlspecialchars($NAME . ' ' . $APE); ?></strong>
+        <small class="text-muted"><?php echo htmlspecialchars($area); ?></small>
+      </li>
+      <li><a class="dropdown-item py-2" href="perfil.php"><i class="bi bi-person me-2"></i> Mi Perfil</a></li>
+      <li><a class="dropdown-item py-2" href="#"><i class="bi bi-gear me-2"></i> Configuración</a></li>
+      <li><a class="dropdown-item py-2" href="#"><i class="bi bi-question-circle me-2"></i> Ayuda</a></li>
+      <li><hr class="dropdown-divider"></li>
+      <li><a class="dropdown-item py-2 text-danger" href="../logout.php"><i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión</a></li>
     </ul>
+  </div>
+</header>
 
-  </aside><!-- End Sidebar-->
+<!-- ============ SIDEBAR ============ -->
+<aside class="sidebar">
+  <ul class="sidebar-nav">
+    <li class="nav-item">
+      <a class="nav-link" href="index.php"><i class="bi bi-grid-1x2-fill"></i><span>Dashboard</span></a>
+    </li>
 
+    <li class="nav-heading">Solicitudes</li>
+    <li class="nav-item">
+      <a class="nav-link" href="soporte_tecnico.php"><i class="bi bi-headset"></i><span>Soporte Técnico</span></a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="Constancia_de_trabajo.php?edi=<?php echo $ID; ?>"><i class="bi bi-file-earmark-text"></i><span>Constancia de Trabajo</span></a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="recibo.php"><i class="bi bi-receipt"></i><span>Recibo de Pago</span></a>
+    </li>
 
-  <main id="main" class="main">
+    <li class="nav-heading">Recursos</li>
+    <li class="nav-item">
+      <a class="nav-link" href="./pdf/vacaciones.xls"><i class="bi bi-download"></i><span>Planilla de Vacaciones</span></a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="./pdf/permiso.docx"><i class="bi bi-download"></i><span>Planilla de Permisos</span></a>
+    </li>
 
-    <div class="pagetitle">
-      <h1>Perfil</h1>
-      <nav>
-        <ol class="breadcrumb">
-          <li class="breadcrumb-item"><a href="index.html">Home</a></li>
-          <li class="breadcrumb-item">Users</li>
-          <li class="breadcrumb-item active">Profile</li>
-        </ol>
-      </nav>
-    </div><!-- End Page Title -->
+    <li class="nav-heading">Administración</li>
+    <li class="nav-item">
+      <a class="nav-link active" href="perfil.php"><i class="bi bi-person-circle"></i><span>Mi Perfil</span></a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link" href="caso_soporte.php"><i class="bi bi-ticket-detailed"></i><span>Casos de Soporte</span></a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link text-danger" href="../logout.php"><i class="bi bi-box-arrow-right"></i><span>Cerrar Sesión</span></a>
+    </li>
+  </ul>
+</aside>
 
-    <section class="section profile">
-      <div class="row">
-        <div class="col-xl-4">
+<!-- ============ MAIN ============ -->
+<main class="main">
 
-          <div class="card">
-            <div class="card-body profile-card pt-4 d-flex flex-column align-items-center">
-            <?php 
-                                 
-                                 if (isset($_SESSION['IDDATOS'])) {
-              
-                                 }else{
-                                     ?>
-                                     <script type="text/javascript">
-                                         window.location = "./";
-                                     </script>
-                                     <?php 
-                                 }
-                              
-                                 $consulta = mysqli_query($conn, "SELECT CEDULA , foto FROM user_datos WHERE CEDULA = '$CEDULA';");
-                                 $valores = mysqli_fetch_array($consulta);
-                                 $foto = $valores['foto'];
-                                  ?>
-        <img src="<?php echo $foto; ?>"  class="rounded-circle">
-              <h2><?php echo  $NAME ?></h2>
-              <h3><?php echo  $area ?></h3>
-              <div class="social-links mt-2">
-                <a href="#" class="twitter"><i class="bi bi-twitter"></i></a>
-                <a href="#" class="facebook"><i class="bi bi-facebook"></i></a>
-                <a href="#" class="instagram"><i class="bi bi-instagram"></i></a>
-                <a href="#" class="linkedin"><i class="bi bi-linkedin"></i></a>
+  <!-- Page Header -->
+  <div class="page-header">
+    <h1>Mi Perfil</h1>
+    <nav>
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="index.php">Inicio</a></li>
+        <li class="breadcrumb-item active">Perfil</li>
+      </ol>
+    </nav>
+  </div>
+
+  <!-- Profile Header Card -->
+  <div class="profile-header">
+    <div class="profile-banner"></div>
+    <div class="profile-info-block">
+      <div class="profile-avatar-wrapper">
+        <img src="<?php echo htmlspecialchars($foto); ?>" alt="Avatar" class="profile-avatar">
+        <div class="profile-details">
+          <h2><?php echo htmlspecialchars($NAME . ' ' . $APE); ?></h2>
+          <span class="role-badge">
+            <i class="bi bi-award-fill"></i> <?php echo htmlspecialchars($nombreRol); ?>
+          </span>
+          <div class="area"><i class="bi bi-building me-1"></i><?php echo htmlspecialchars($area); ?></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mini stats -->
+    <div class="mini-stats">
+      <div class="mini-stat">
+        <h4><?php echo $stats['reportes']; ?></h4>
+        <span>Reportes</span>
+      </div>
+      <div class="mini-stat">
+        <h4><?php echo $stats['resueltos']; ?></h4>
+        <span>Resueltos</span>
+      </div>
+      <div class="mini-stat">
+        <h4><?php echo $stats['pendientes']; ?></h4>
+        <span>Pendientes</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs Card -->
+  <div class="profile-tabs">
+    <div class="nav-tabs-custom" role="tablist">
+      <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-info" type="button">
+        <i class="bi bi-person-vcard"></i> Información
+      </button>
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-edit" type="button">
+        <i class="bi bi-pencil-square"></i> Editar Perfil
+      </button>
+      <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-password" type="button">
+        <i class="bi bi-shield-lock"></i> Cambiar Contraseña
+      </button>
+    </div>
+
+    <div class="tab-content">
+      <!-- ============ TAB INFO ============ -->
+      <div class="tab-pane fade show active tab-content-custom" id="tab-info">
+        <h5 class="mb-3" style="font-weight: 700;">Información Personal</h5>
+
+        <div class="info-row">
+          <div class="label"><i class="bi bi-person"></i> Nombre Completo</div>
+          <div class="value"><?php echo htmlspecialchars($U['NAME'] . ' ' . $U['SURNAME']); ?></div>
+        </div>
+        <div class="info-row">
+          <div class="label"><i class="bi bi-credit-card"></i> Cédula</div>
+          <div class="value"><?php echo htmlspecialchars($U['CEDULA']); ?></div>
+        </div>
+        <div class="info-row">
+          <div class="label"><i class="bi bi-at"></i> Usuario</div>
+          <div class="value"><?php echo htmlspecialchars($U['USER']); ?></div>
+        </div>
+        <div class="info-row">
+          <div class="label"><i class="bi bi-envelope"></i> Correo</div>
+          <div class="value"><?php echo htmlspecialchars($U['EMAIL']); ?></div>
+        </div>
+        <div class="info-row">
+          <div class="label"><i class="bi bi-telephone"></i> Teléfono</div>
+          <div class="value"><?php echo htmlspecialchars($U['telefono']); ?></div>
+        </div>
+        <div class="info-row">
+          <div class="label"><i class="bi bi-building"></i> Área</div>
+          <div class="value"><?php echo htmlspecialchars($U['ASSIGNED_AREA']); ?></div>
+        </div>
+        <div class="info-row">
+          <div class="label"><i class="bi bi-shield-check"></i> Rol</div>
+          <div class="value"><?php echo htmlspecialchars($nombreRol); ?></div>
+        </div>
+      </div>
+
+      <!-- ============ TAB EDIT ============ -->
+      <div class="tab-pane fade tab-content-custom" id="tab-edit">
+        <h5 class="mb-4" style="font-weight: 700;">Editar Información</h5>
+
+        <form method="POST" action="actualizar_perfil.php" enctype="multipart/form-data">
+          <div class="row g-4 mb-4">
+            <div class="col-md-4 text-center">
+              <label class="form-label d-block mb-3">Foto de Perfil</label>
+              <div class="avatar-upload">
+                <img src="<?php echo htmlspecialchars($foto); ?>" id="previewFoto" alt="Avatar">
+                <label for="inputFoto" class="btn-camera" title="Cambiar foto">
+                  <i class="bi bi-camera-fill"></i>
+                </label>
+                <input type="file" id="inputFoto" name="foto" accept="image/*" hidden onchange="previewImage(event)">
+              </div>
+              <p class="text-muted small mt-2 mb-0">JPG, PNG o GIF · Máx 2MB</p>
+            </div>
+
+            <div class="col-md-8">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Nombre</label>
+                  <input type="text" class="form-control" name="name" value="<?php echo htmlspecialchars($U['NAME']); ?>" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Apellido</label>
+                  <input type="text" class="form-control" name="surname" value="<?php echo htmlspecialchars($U['SURNAME']); ?>" required>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Correo Electrónico</label>
+                  <input type="email" class="form-control" name="email" value="<?php echo htmlspecialchars($U['EMAIL']); ?>">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Teléfono</label>
+                  <input type="text" class="form-control" name="telefono" value="<?php echo htmlspecialchars($U['telefono']); ?>">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Cédula</label>
+                  <input type="text" class="form-control" value="<?php echo htmlspecialchars($U['CEDULA']); ?>" disabled>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Usuario</label>
+                  <input type="text" class="form-control" value="<?php echo htmlspecialchars($U['USER']); ?>" disabled>
+                </div>
               </div>
             </div>
           </div>
 
-        </div>
+          <div class="text-end border-top pt-3">
+            <button type="reset" class="btn btn-light me-2" style="border-radius:10px;">Cancelar</button>
+            <button type="submit" class="btn-gradient">
+              <i class="bi bi-check-lg"></i> Guardar Cambios
+            </button>
+          </div>
+        </form>
+      </div>
 
-        <div class="col-xl-8">
+      <!-- ============ TAB PASSWORD ============ -->
+      <div class="tab-pane fade tab-content-custom" id="tab-password">
+        <h5 class="mb-4" style="font-weight: 700;">Cambiar Contraseña</h5>
 
-          <div class="card">
-            <div class="card-body pt-3">
-              <!-- Bordered Tabs -->
-              <ul class="nav nav-tabs nav-tabs-bordered">
+        <form method="POST" action="cambiar_password.php" id="formPass">
+          <div class="row g-3" style="max-width: 500px;">
 
-                <li class="nav-item">
-                  <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#profile-overview">Descripción general</button>
-                </li>
+            <div class="col-12">
+              <label class="form-label">Contraseña Actual</label>
+              <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-lock text-muted"></i></span>
+                <input type="password" class="form-control" name="password_actual" required>
+              </div>
+            </div>
 
-                <li class="nav-item">
-                  <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profile-edit">Editar perfil</button>
-                </li>
+            <div class="col-12">
+              <label class="form-label">Nueva Contraseña</label>
+              <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-key text-muted"></i></span>
+                <input type="password" class="form-control" name="password_nueva" id="nueva" required oninput="medirFuerza(this.value)">
+              </div>
+              <div class="password-strength">
+                <div class="bar" id="bar1"></div>
+                <div class="bar" id="bar2"></div>
+                <div class="bar" id="bar3"></div>
+                <div class="bar" id="bar4"></div>
+              </div>
+              <div class="password-hint" id="hintPass">Mínimo 8 caracteres, una mayúscula y un número</div>
+            </div>
 
-           
-                <li class="nav-item">
-                  <button class="nav-link" data-bs-toggle="tab" data-bs-target="#profile-change-password">Cambiar la contraseña</button>
-                </li>
+            <div class="col-12">
+              <label class="form-label">Confirmar Nueva Contraseña</label>
+              <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-key-fill text-muted"></i></span>
+                <input type="password" class="form-control" name="password_confirmar" id="confirmar" required oninput="validarCoincidencia()">
+              </div>
+              <div class="password-hint" id="hintMatch"></div>
+            </div>
 
-              </ul>
-              <div class="tab-content pt-2">
-
-                <div class="tab-pane fade show active profile-overview" id="profile-overview">
-                
-
-                  <h5 class="card-title">Detalles del perfil</h5>
-
-                  <div class="row">
-                    <div class="col-lg-3 col-md-4 label">Nombre completo</div>
-                    <div class="col-lg-9 col-md-8">Kevin Anderson</div>
-                  </div>
-
-                  <div class="row">
-                    <div class="col-lg-3 col-md-4 label">Compañía</div>
-                    <div class="col-lg-9 col-md-8">Lueilwitz, Wisoky and Leuschke</div>
-                  </div>
-
-                  <div class="row">
-                    <div class="col-lg-3 col-md-4 label">cargo</div>
-                    <div class="col-lg-9 col-md-8">Web Designer</div>
-                  </div>
-
-                  <div class="row">
-                    <div class="col-lg-3 col-md-4 label">Country</div>
-                    <div class="col-lg-9 col-md-8">USA</div>
-                  </div>
-
-                  <div class="row">
-                    <div class="col-lg-3 col-md-4 label">Direccion</div>
-                    <div class="col-lg-9 col-md-8">A108 Adam Street, New York, NY 535022</div>
-                  </div>
-
-                  <div class="row">
-                    <div class="col-lg-3 col-md-4 label">Telefono</div>
-                    <div class="col-lg-9 col-md-8">(436) 486-3538 x29071</div>
-                  </div>
-
-                  <div class="row">
-                    <div class="col-lg-3 col-md-4 label">Correo</div>
-                    <div class="col-lg-9 col-md-8">k.anderson@example.com</div>
-                  </div>
-
-                </div>
-
-                <div class="tab-pane fade profile-edit pt-3" id="profile-edit">
-
-                  <!-- Profile Edit Form -->
-                  <form>
-                    <div class="row mb-3">
-                      <label for="profileImage" class="col-md-4 col-lg-3 col-form-label">Foto de perfil</label>
-                      <div class="col-md-8 col-lg-9">
-                        <img src="assets/img/profile-img.jpg" alt="Profile">
-                        <div class="pt-2">
-                          <a href="#" class="btn btn-primary btn-sm" title="Upload new profile image"><i class="bi bi-upload"></i></a>
-                          <a href="#" class="btn btn-danger btn-sm" title="Remove my profile image"><i class="bi bi-trash"></i></a>
-                        </div>
-                      </div>
-                                </div>
-
-                    <div class="row mb-3">
-                      <label for="Job" class="col-md-4 col-lg-3 col-form-label">Cargo</label>
-                      <div class="col-md-8 col-lg-9">
-                        <input name="job" type="text" class="form-control" id="Job" value="Web Designer">
-                      </div>
-                    </div>
-
-                    <div class="row mb-3">
-                      <label for="Address" class="col-md-4 col-lg-3 col-form-label">Direccion</label>
-                      <div class="col-md-8 col-lg-9">
-                        <input name="address" type="text" class="form-control" id="Address" value="A108 Adam Street, New York, NY 535022">
-                      </div>
-                    </div>
-
-                    <div class="row mb-3">
-                      <label for="Phone" class="col-md-4 col-lg-3 col-form-label">Telefono</label>
-                      <div class="col-md-8 col-lg-9">
-                        <input name="phone" type="text" class="form-control" id="Phone" value="(436) 486-3538 x29071">
-                      </div>
-                    </div>
-
-                    <div class="row mb-3">
-                      <label for="Email" class="col-md-4 col-lg-3 col-form-label">Correo</label>
-                      <div class="col-md-8 col-lg-9">
-                        <input name="email" type="email" class="form-control" id="Email" value="k.anderson@example.com">
-                      </div>
-                    </div>
-
-                   
-
-                    <div class="text-center">
-                      <button type="submit" class="btn btn-primary">Save Changes</button>
-                    </div>
-                  </form><!-- End Profile Edit Form -->
-
-                </div>
-
-                <div class="tab-pane fade pt-3" id="profile-settings">
-
-                  <!-- Settings Form -->
-                  <form>
-
-                    <div class="row mb-3">
-                      <label for="fullName" class="col-md-4 col-lg-3 col-form-label">Email Notifications</label>
-                      <div class="col-md-8 col-lg-9">
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" id="changesMade" checked>
-                          <label class="form-check-label" for="changesMade">
-                            Changes made to your account
-                          </label>
-                        </div>
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" id="newProducts" checked>
-                          <label class="form-check-label" for="newProducts">
-                            Information on new products and services
-                          </label>
-                        </div>
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" id="proOffers">
-                          <label class="form-check-label" for="proOffers">
-                            Marketing and promo offers
-                          </label>
-                        </div>
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" id="securityNotify" checked disabled>
-                          <label class="form-check-label" for="securityNotify">
-                            Security alerts
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="text-center">
-                      <button type="submit" class="btn btn-primary">Save Changes</button>
-                    </div>
-                  </form><!-- End settings Form -->
-
-                </div>
-
-                <div class="tab-pane fade pt-3" id="profile-change-password">
-                  <!-- Change Password Form -->
-                  <form>
-
-                    <div class="row mb-3">
-                      <label for="currentPassword" class="col-md-4 col-lg-3 col-form-label">Contraseña actual</label>
-                      <div class="col-md-8 col-lg-9">
-                        <input name="password" type="password" class="form-control" id="currentPassword">
-                      </div>
-                    </div>
-
-                    <div class="row mb-3">
-                      <label for="newPassword" class="col-md-4 col-lg-3 col-form-label">Nueva contraseña</label>
-                      <div class="col-md-8 col-lg-9">
-                        <input name="newpassword" type="password" class="form-control" id="newPassword">
-                      </div>
-                    </div>
-
-                    <div class="row mb-3">
-                      <label for="renewPassword" class="col-md-4 col-lg-3 col-form-label">Confirme nueva contraseña</label>
-                      <div class="col-md-8 col-lg-9">
-                        <input name="renewpassword" type="password" class="form-control" id="renewPassword">
-                      </div>
-                    </div>
-
-                    <div class="text-center">
-                      <button type="submit" class="btn btn-primary">Change Password</button>
-                    </div>
-                  </form><!-- End Change Password Form -->
-
-                </div>
-
-              </div><!-- End Bordered Tabs -->
-
+            <div class="col-12 text-end border-top pt-3 mt-3">
+              <button type="submit" class="btn-gradient">
+                <i class="bi bi-shield-check"></i> Actualizar Contraseña
+              </button>
             </div>
           </div>
-
-        </div>
+        </form>
       </div>
-    </section>
-<br>
-<br>
-<br>
-<br>
-  </main><!-- End #main -->
-
-  <!-- ======= Footer ======= -->
-  <footer id="footer" class="footer">
-    <div class="copyright">
-      &copy; Copyright <strong><span>NiceAdmin</span></strong>. All Rights Reserved
     </div>
-    <div class="credits">
-      <!-- All the links in the footer should remain intact. -->
-      <!-- You can delete the links only if you purchased the pro version. -->
-      <!-- Licensing information: https://bootstrapmade.com/license/ -->
-      <!-- Purchase the pro version with working PHP/AJAX contact form: https://bootstrapmade.com/nice-admin-bootstrap-admin-html-template/ -->
-      Designed by <a href="https://bootstrapmade.com/">BootstrapMade</a>
-    </div>
-  </footer><!-- End Footer -->
+  </div>
 
-  <a href="#" class="back-to-top d-flex align-items-center justify-content-center"><i class="bi bi-arrow-up-short"></i></a>
+</main>
 
-  <!-- Vendor JS Files -->
-  <script src="assets/vendor/apexcharts/apexcharts.min.js"></script>
-  <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <script src="assets/vendor/chart.js/chart.umd.js"></script>
-  <script src="assets/vendor/echarts/echarts.min.js"></script>
-  <script src="assets/vendor/quill/quill.js"></script>
-  <script src="assets/vendor/simple-datatables/simple-datatables.js"></script>
-  <script src="assets/vendor/tinymce/tinymce.min.js"></script>
-  <script src="assets/vendor/php-email-form/validate.js"></script>
+<!-- ============ FOOTER ============ -->
+<footer class="footer">
+  <strong>Industria Canaima C.A.</strong> © <?php echo date('Y'); ?> — Todos los derechos reservados
+  <br>
+  <small class="text-muted">RIF: G-20010288-8</small>
+</footer>
 
-  <!-- Template Main JS File -->
-  <script src="assets/js/main.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Preview imagen antes de subir
+  function previewImage(e) {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = ev => document.getElementById('previewFoto').src = ev.target.result;
+      reader.readAsDataURL(file);
+    }
+  }
 
+  // Medidor de fuerza de contraseña
+  function medirFuerza(pass) {
+    let score = 0;
+    if (pass.length >= 8) score++;
+    if (/[A-Z]/.test(pass)) score++;
+    if (/[0-9]/.test(pass)) score++;
+    if (/[^A-Za-z0-9]/.test(pass)) score++;
+
+    const bars = ['bar1', 'bar2', 'bar3', 'bar4'];
+    bars.forEach(id => document.getElementById(id).className = 'bar');
+
+    let nivel = '';
+    for (let i = 0; i < score; i++) {
+      document.getElementById(bars[i]).classList.add('active');
+    }
+    if (score <= 2) nivel = 'weak';
+    else if (score === 3) nivel = 'medium';
+    else nivel = 'strong';
+
+    bars.slice(0, score).forEach(id => document.getElementById(id).classList.add(nivel));
+
+    const hint = document.getElementById('hintPass');
+    if (score <= 2) { hint.textContent = '⚠️ Contraseña débil'; hint.style.color = '#ef4444'; }
+    else if (score === 3) { hint.textContent = '🟡 Contraseña aceptable'; hint.style.color = '#f59e0b'; }
+    else { hint.textContent = '✅ Contraseña fuerte'; hint.style.color = '#10b981'; }
+  }
+
+  function validarCoincidencia() {
+    const n = document.getElementById('nueva').value;
+    const c = document.getElementById('confirmar').value;
+    const hint = document.getElementById('hintMatch');
+    if (!c) { hint.textContent = ''; return; }
+    if (n === c) { hint.textContent = '✅ Las contraseñas coinciden'; hint.style.color = '#10b981'; }
+    else { hint.textContent = '❌ Las contraseñas no coinciden'; hint.style.color = '#ef4444'; }
+  }
+</script>
 </body>
-
 </html>
