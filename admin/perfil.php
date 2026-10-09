@@ -1,5 +1,6 @@
 <?php
 include('../cone.php');
+include('../permisos.php');
 session_start();
 
 if (!isset($_SESSION['IDDATOS'])) {
@@ -516,44 +517,7 @@ $nombreRol = $roles[$U['IDROLS']] ?? 'Usuario';
   </div>
 </header>
 
-<!-- ============ SIDEBAR ============ -->
-<aside class="sidebar">
-  <ul class="sidebar-nav">
-    <li class="nav-item">
-      <a class="nav-link" href="index.php"><i class="bi bi-grid-1x2-fill"></i><span>Dashboard</span></a>
-    </li>
-
-    <li class="nav-heading">Solicitudes</li>
-    <li class="nav-item">
-      <a class="nav-link" href="soporte_tecnico.php"><i class="bi bi-headset"></i><span>Soporte Técnico</span></a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" href="Constancia_de_trabajo.php?edi=<?php echo $ID; ?>"><i class="bi bi-file-earmark-text"></i><span>Constancia de Trabajo</span></a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" href="recibo.php"><i class="bi bi-receipt"></i><span>Recibo de Pago</span></a>
-    </li>
-
-    <li class="nav-heading">Recursos</li>
-    <li class="nav-item">
-      <a class="nav-link" href="./pdf/vacaciones.xls"><i class="bi bi-download"></i><span>Planilla de Vacaciones</span></a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" href="./pdf/permiso.docx"><i class="bi bi-download"></i><span>Planilla de Permisos</span></a>
-    </li>
-
-    <li class="nav-heading">Administración</li>
-    <li class="nav-item">
-      <a class="nav-link active" href="perfil.php"><i class="bi bi-person-circle"></i><span>Mi Perfil</span></a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link" href="caso_soporte.php"><i class="bi bi-ticket-detailed"></i><span>Casos de Soporte</span></a>
-    </li>
-    <li class="nav-item">
-      <a class="nav-link text-danger" href="../logout.php"><i class="bi bi-box-arrow-right"></i><span>Cerrar Sesión</span></a>
-    </li>
-  </ul>
-</aside>
+<?php include 'include/sidebar.php'; ?>
 
 <!-- ============ MAIN ============ -->
 <main class="main">
